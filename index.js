@@ -1,8 +1,13 @@
 const express = require("express");
+const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
+
+// middlewares
+app.use(cors());
+app.use(express.json());
 
 // connection string
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.yyrxfdz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -21,7 +26,15 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
 
+        // collections
+        const myQueryCollection = client.db("InflectiveDB").collection("myQueryCollection");
 
+        // api's here
+        app.post("/addQuery", async (req, res) => {
+            const newQueryInfo = req.body;
+            const result = await myQueryCollection.insertOne(newQueryInfo);
+            res.send(result);
+        })
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
