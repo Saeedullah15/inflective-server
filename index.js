@@ -36,6 +36,20 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/myQueries", async (req, res) => {
+            const userEmail = req.query.email;
+            console.log(userEmail);
+            const query = { UserEmail: userEmail };
+            const options = {
+                // Sort returned documents in ascending/descending order. "1" for ascending and "-1" for descending
+                sort: { currentDate: -1 },
+                // Include only the `title` and `imdb` fields in each returned document
+                projection: { _id: 1, QueryTitle: 1, UserName: 1, currentDate: 1 },
+            };
+            const cursor = await myQueryCollection.find(query, options).toArray();
+            res.send(cursor);
+        })
+
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
