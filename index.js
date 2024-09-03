@@ -28,8 +28,10 @@ async function run() {
 
         // collections
         const myQueryCollection = client.db("InflectiveDB").collection("myQueryCollection");
+        const recommendationCollection = client.db("InflectiveDB").collection("recommendationCollection");
 
         // api's here
+        // queries api
         app.post("/addQuery", async (req, res) => {
             const newQueryInfo = req.body;
             const result = await myQueryCollection.insertOne(newQueryInfo);
@@ -90,6 +92,31 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await myQueryCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        // recommendation api
+        app.post("/addRecommendation", async (req, res) => {
+            const newRecommendation = req.body;
+            const result = await recommendationCollection.insertOne(newRecommendation);
+            res.send(result);
+        })
+
+        app.put("/updateRecommendationCount/:id", async (req, res) => {
+            const id = req.params.id;
+            const recommendationCount = req.body;
+            console.log(recommendationCount);
+
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $inc: {
+                    recommendationCount: 1
+                }
+            }
+            // { $inc: { recommendationCount: 1 } }
+
+            const result = await myQueryCollection.updateOne(filter, updatedDoc);
+            console.log(result);
             res.send(result);
         })
 
