@@ -117,6 +117,13 @@ async function run() {
             res.send(cursor);
         })
 
+        app.get("/recommendations", async (req, res) => {
+            const email = req.query.email;
+            const query = { UserEmail: email };
+            const cursor = await recommendationCollection.find(query).toArray();
+            res.send(cursor);
+        })
+
         app.put("/updateRecommendationCount/:id", async (req, res) => {
             const id = req.params.id;
             const recommendationCount = req.body;
