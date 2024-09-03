@@ -38,7 +38,7 @@ async function run() {
 
         app.get("/myQueries", async (req, res) => {
             const userEmail = req.query.email;
-            console.log(userEmail);
+            // console.log(userEmail);
             const query = { UserEmail: userEmail };
             const options = {
                 // Sort returned documents in ascending/descending order. "1" for ascending and "-1" for descending
@@ -54,6 +54,32 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await myQueryCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.put("/updateQuery/:id", async (req, res) => {
+            const id = req.params.id;
+            const updatedInfo = req.body;
+            const filter = { _id: new ObjectId(id) };
+            // const options = { upsert: true };
+            const updatedDoc = {
+                $set: {
+                    ProductName: updatedInfo.ProductName,
+                    ProductBrand: updatedInfo.ProductBrand,
+                    ProductImage: updatedInfo.ProductImage,
+                    QueryTitle: updatedInfo.QueryTitle,
+                    Reason: updatedInfo.Reason,
+                    currentDate: updatedInfo.currentDate
+                }
+            }
+            const result = await myQueryCollection.updateOne(filter, updatedDoc);
+            res.send(result);
+        })
+
+        app.delete("/deleteQuery/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await myQueryCollection.deleteOne(query);
             res.send(result);
         })
 
