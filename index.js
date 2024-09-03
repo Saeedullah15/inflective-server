@@ -102,6 +102,14 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/allRecommendations", async (req, res) => {
+            const queryId = req.query.queryId;
+            console.log(queryId);
+            const query = { QueryId: queryId };
+            const cursor = await recommendationCollection.find(query).toArray();
+            res.send(cursor);
+        })
+
         app.put("/updateRecommendationCount/:id", async (req, res) => {
             const id = req.params.id;
             const recommendationCount = req.body;
