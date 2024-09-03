@@ -110,6 +110,13 @@ async function run() {
             res.send(cursor);
         })
 
+        app.get("/myRecommendations", async (req, res) => {
+            const email = req.query.email;
+            const query = { RecommenderEmail: email };
+            const cursor = await recommendationCollection.find(query).toArray();
+            res.send(cursor);
+        })
+
         app.put("/updateRecommendationCount/:id", async (req, res) => {
             const id = req.params.id;
             const recommendationCount = req.body;
@@ -125,6 +132,13 @@ async function run() {
 
             const result = await myQueryCollection.updateOne(filter, updatedDoc);
             console.log(result);
+            res.send(result);
+        })
+
+        app.delete("/deleteRecommendations/:id", async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await recommendationCollection.deleteOne(query);
             res.send(result);
         })
 
