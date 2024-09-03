@@ -36,6 +36,16 @@ async function run() {
             res.send(result);
         })
 
+        app.get("/allQueries", async (req, res) => {
+            const query = {};
+            const options = {
+                // Sort returned documents in ascending/descending order. "1" for ascending and "-1" for descending
+                sort: { currentDate: -1 }
+            };
+            const cursor = await myQueryCollection.find(query, options).toArray();
+            res.send(cursor);
+        })
+
         app.get("/myQueries", async (req, res) => {
             const userEmail = req.query.email;
             // console.log(userEmail);
