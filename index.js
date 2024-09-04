@@ -1,13 +1,41 @@
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
 // middlewares
-app.use(cors());
+app.use(cors({
+    origin: ["http://localhost:5173"],
+    credentials: true
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// custom middlewares
+const logger = (req, res, next) => {
+    console.log("inside logger: ", req.method, req.url);
+    next();
+}
+
+const verifyToken = (req, res, next) => {
+    const token = req.cookies.token;
+    console.log("token inside verifyToken: ", token);
+
+    if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+    }
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: "unauthorized access" });
+        }
+        req.user = decoded;
+        next();
+    })
+}
 
 // connection string
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.yyrxfdz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -31,8 +59,24 @@ async function run() {
         const recommendationCollection = client.db("InflectiveDB").collection("recommendationCollection");
 
         // api's here
+        // auth related api
+        app.post("/jwt", async (req, res) => {
+            const userEmail = req.body;
+
+            const token = jwt.sign(userEmail, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "1h" });
+            res.cookie("token", token, {
+                httpOnly: true,
+                secure: true,
+                sameSite: "none"
+            }).send({ success: true });
+        })
+
+        app.post("/logout", async (req, res) => {
+            res.clearCookie("token", { maxAge: 0 }).send("cookie cleared");
+        })
+
         // queries api
-        app.post("/addQuery", async (req, res) => {
+        app.post("/addQuery", verifyToken, async (req, res) => {
             const newQueryInfo = req.body;
             const result = await myQueryCollection.insertOne(newQueryInfo);
             res.send(result);
@@ -48,9 +92,13 @@ async function run() {
             res.send(cursor);
         })
 
-        app.get("/myQueries", async (req, res) => {
+        app.get("/myQueries", verifyToken, async (req, res) => {
             const userEmail = req.query.email;
             // console.log(userEmail);
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: "forbidden access" });
+            }
+
             const query = { UserEmail: userEmail };
             const options = {
                 // Sort returned documents in ascending/descending order. "1" for ascending and "-1" for descending
@@ -62,14 +110,14 @@ async function run() {
             res.send(cursor);
         })
 
-        app.get("/queryDetails/:id", async (req, res) => {
+        app.get("/queryDetails/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await myQueryCollection.findOne(query);
             res.send(result);
         })
 
-        app.put("/updateQuery/:id", async (req, res) => {
+        app.put("/updateQuery/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const updatedInfo = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -88,7 +136,7 @@ async function run() {
             res.send(result);
         })
 
-        app.delete("/deleteQuery/:id", async (req, res) => {
+        app.delete("/deleteQuery/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await myQueryCollection.deleteOne(query);
@@ -96,7 +144,7 @@ async function run() {
         })
 
         // recommendation api
-        app.post("/addRecommendation", async (req, res) => {
+        app.post("/addRecommendation", verifyToken, async (req, res) => {
             const newRecommendation = req.body;
             const result = await recommendationCollection.insertOne(newRecommendation);
             res.send(result);
@@ -104,20 +152,24 @@ async function run() {
 
         app.get("/allRecommendations", async (req, res) => {
             const queryId = req.query.queryId;
-            console.log(queryId);
+            // console.log(queryId);
             const query = { QueryId: queryId };
             const cursor = await recommendationCollection.find(query).toArray();
             res.send(cursor);
         })
 
-        app.get("/myRecommendations", async (req, res) => {
+        app.get("/myRecommendations", verifyToken, async (req, res) => {
             const email = req.query.email;
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: "forbidden access" });
+            }
+
             const query = { RecommenderEmail: email };
             const cursor = await recommendationCollection.find(query).toArray();
             res.send(cursor);
         })
 
-        app.get("/recommendations", async (req, res) => {
+        app.get("/recommendations", verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { UserEmail: email };
             const cursor = await recommendationCollection.find(query).toArray();
@@ -127,7 +179,7 @@ async function run() {
         app.put("/updateRecommendationCount/:id", async (req, res) => {
             const id = req.params.id;
             const recommendationCount = req.body;
-            console.log(recommendationCount);
+            // console.log(recommendationCount);
 
             const filter = { _id: new ObjectId(id) };
             const updatedDoc = {
@@ -138,11 +190,11 @@ async function run() {
             // { $inc: { recommendationCount: 1 } }
 
             const result = await myQueryCollection.updateOne(filter, updatedDoc);
-            console.log(result);
+            // console.log(result);
             res.send(result);
         })
 
-        app.delete("/deleteRecommendations/:id", async (req, res) => {
+        app.delete("/deleteRecommendations/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await recommendationCollection.deleteOne(query);
