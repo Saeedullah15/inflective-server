@@ -83,7 +83,10 @@ async function run() {
         })
 
         app.get("/allQueries", async (req, res) => {
-            const query = {};
+            const searchText = req.query.searchText || "";
+            const query = {
+                ProductName: { $regex: searchText, $options: 'i' } // case insensitive search
+            };
             const options = {
                 // Sort returned documents in ascending/descending order. "1" for ascending and "-1" for descending
                 sort: { currentDate: -1 }
